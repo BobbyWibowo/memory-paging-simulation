@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="description" content="Proyek mata kuliah Sistem Operasi.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Memory Paging Simulation &#8211; Proyek mata kuliah Sistem Operasi.</title>
+
+    <!-- Stylesheets and scripts -->
+    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=h4evirOpQv">
+    <link rel="stylesheet" type="text/css" href="css/index.css?v=h4evirOpQv">
+    <script type="text/javascript" src="libs/Chart.js/Chart.min.js?v=h4evirOpQv"></script>
+    <script type="text/javascript" src="js/index.js?v=h4evirOpQv"></script>
+
+    <!-- Open Graph tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Memory Paging Simulation" />
+    <meta property="og:url" content="" />
+    <meta property="og:description" content="Proyek mata kuliah Sistem Operasi." />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card tags -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Memory Paging Simulation">
+    <meta name="twitter:description" content="Proyek mata kuliah Sistem Operasi.">
+  </head>
+
+  <body>
+
+    <section class="section">
+      <div class="container">
+        <h1 class="title">Memory Paging Simulation</h1>
+        <h2 class="subtitle">Proyek mata kuliah Sistem Operasi.</h2>
+
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label class="label">Ukuran page (pisah tiap entry dengan tanda koma):</label>
+              <div class="control">
+                <textarea id="pages" class="textarea" type="text" rows="2">126,107,368,113,109,36,220,250,510</textarea>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Ukuran frame (pisah tiap entry dengan tanda koma):</label>
+              <div class="control">
+                <textarea id="frames" class="textarea" type="text" rows="2">368,44,244,384,412,386,600,90,255,133</textarea>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="control">
+                <label class="checkbox">
+                  <input id="firstFit" type="checkbox" name="first-fit" checked>
+                  First fit
+                </label>
+                <label class="checkbox">
+                  <input id="nextFit" type="checkbox" name="next-fit" checked>
+                  Next fit
+                </label>
+                <label class="checkbox">
+                  <input id="bestFit" type="checkbox" name="best-fit" checked>
+                  Best fit
+                </label>
+                <label class="checkbox">
+                  <input id="worstFit" type="checkbox" name="worst-fit" checked>
+                  Worst fit
+                </label>
+                <label class="checkbox">
+                  <input id="quickFit" type="checkbox" name="quick-fit" disabled>
+                  Quick fit
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="control">
+                <label class="checkbox">
+                  <input id="allocateHalf" type="checkbox">
+                  Tandai setengah dari jumlah frame sebagai unavailable.
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="control">
+                <button class="button is-link is-fullwidth" onclick="index.simulate()">Simulasikan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label class="label">Gunakan aturan page dan frame sebelumnya:</label>
+              <div class="control">
+                <div class="select is-multiple is-fullwidth">
+                  <select id="history"></select>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="control">
+                <button class="button is-fullwidth" onclick="index.useHistory()">Gunakan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="columns">
+          <div id="chart" class="column">
+            <div id="chart-container"></div>
+          </div>
+        </div>
+
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label class="label">Log pengalokasian page ke frame:</label>
+              <div class="control">
+                <textarea id="memlog" class="textarea" rows="10" readonly></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </body>
+
+</html>
