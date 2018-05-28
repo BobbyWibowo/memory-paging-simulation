@@ -6,8 +6,6 @@ textarea[rows="10"] {
   min-height: 282px;
 }
 
-#chart-container {
-  position: relative;
-  width: 100%;
-  height: 200%
+.notification {
+  padding: 0.35rem 1rem;
 }

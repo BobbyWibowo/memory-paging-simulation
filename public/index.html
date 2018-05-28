@@ -9,10 +9,12 @@
     <title>Memory Paging Simulation &#8211; Proyek mata kuliah Sistem Operasi.</title>
 
     <!-- Stylesheets and scripts -->
-    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=h4evirOpQv">
-    <link rel="stylesheet" type="text/css" href="css/index.css?v=h4evirOpQv">
-    <script type="text/javascript" src="libs/Chart.js/Chart.min.js?v=h4evirOpQv"></script>
-    <script type="text/javascript" src="js/index.js?v=h4evirOpQv"></script>
+    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=NsoB1vLXAh">
+    <link rel="stylesheet" type="text/css" href="css/index.css?v=NsoB1vLXAh">
+    <script type="text/javascript" src="libs/Chart.js/Chart.min.js?v=NsoB1vLXAh"></script>
+    <script type="text/javascript" src="libs/Chart.js/chartjs-plugin-datalabels.min.js?v=NsoB1vLXAh"></script>
+    <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=NsoB1vLXAh"></script>
+    <script type="text/javascript" src="js/index.js?v=ixbRaK35Ns"></script>
 
     <!-- Open Graph tags -->
     <meta property="og:type" content="website" />
@@ -36,15 +38,9 @@
 
         <div class="columns">
           <div class="column">
-            <div class="field">
-              <label class="label">Ukuran page (pisah tiap entry dengan tanda koma):</label>
-              <div class="control">
-                <textarea id="pages" class="textarea" type="text" rows="2">126,107,368,113,109,36,220,250,510</textarea>
-              </div>
-            </div>
 
             <div class="field">
-              <label class="label">Ukuran frame (pisah tiap entry dengan tanda koma):</label>
+              <label class="label">Frame (pisah dengan tanda koma):</label>
               <div class="control">
                 <textarea id="frames" class="textarea" type="text" rows="2">368,44,244,384,412,386,600,90,255,133</textarea>
               </div>
@@ -69,44 +65,45 @@
                   Worst fit
                 </label>
                 <label class="checkbox">
-                  <input id="quickFit" type="checkbox" name="quick-fit" disabled>
+                  <input id="quickFit" type="checkbox" name="quick-fit">
                   Quick fit
                 </label>
               </div>
             </div>
 
-            <div class="field">
-              <div class="control">
-                <label class="checkbox">
-                  <input id="allocateHalf" type="checkbox">
-                  Tandai setengah dari jumlah frame sebagai unavailable.
-                </label>
+            <div class="columns">
+              <div class="column">
+                <div class="field">
+                  <div class="control is-expanded">
+                    <button id="btn_display" class="button is-info is-fullwidth" onclick="index.init()">Tampilkan memori</button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <div class="field">
-              <div class="control">
-                <button class="button is-link is-fullwidth" onclick="index.simulate()">Simulasikan</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="columns">
-          <div class="column">
-            <div class="field">
-              <label class="label">Gunakan aturan page dan frame sebelumnya:</label>
-              <div class="control">
-                <div class="select is-multiple is-fullwidth">
-                  <select id="history"></select>
+              <div class="column">
+                <div class="field">
+                  <div class="control is-expanded">
+                    <button id="btn_reset" class="button is-danger is-fullwidth" onclick="index.reset()" disabled>Reset</button>
+                  </div>
                 </div>
               </div>
             </div>
+
             <div class="field">
+              <label class="label">Page:</label>
               <div class="control">
-                <button class="button is-fullwidth" onclick="index.useHistory()">Gunakan</button>
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input id="page" class="input" type="text">
+                  </div>
+                  <div class="control">
+                    <button id="btn_page" class="button is-info" onclick="index.page()" disabled>
+                      Masukkan page
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
 
@@ -116,16 +113,6 @@
           </div>
         </div>
 
-        <div class="columns">
-          <div class="column">
-            <div class="field">
-              <label class="label">Log pengalokasian page ke frame:</label>
-              <div class="control">
-                <textarea id="memlog" class="textarea" rows="10" readonly></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 

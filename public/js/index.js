@@ -1,13 +1,14 @@
-/* global Chart */
+/* global Chart, swal */
 
 'use strict'
+
+/* Prototypes */
 
 var Memory = function (frames) {
   this.frames = frames.map(function (frame) {
     return new Frame(frame)
   })
-  this._unallocated = []
-  this._logs = []
+  this.data = {}
 }
 
 Memory.prototype = {
@@ -29,7 +30,6 @@ Memory.prototype = {
 var Frame = function (size) {
   this.size = size
   this.pages = []
-  this._unavailable = false
 }
 
 Frame.prototype = {
@@ -43,377 +43,292 @@ Frame.prototype = {
   }
 }
 
+/* Implementations */
+
 var index = {
-  tags: {
-    firstFit: 'FF',
-    nextFit: 'NF',
-    bestFit: 'BF',
-    worstFit: 'WF',
-    quickFit: 'QF'
-  },
-  memories: {},
-  allocateHalfIndexes: [],
-  history: []
-}
-
-index.log = function (tag, message) {
-  return console.log(tag.toUpperCase() + ': ' + message)
-}
-
-index.memlog = function (tag, memory, message) {
-  message = tag + ': ' + message
-  console.log(message)
-  memory._logs.push(message)
-}
-
-index.debug = function () {
-  return console.log(arguments)
-}
-
-index.updateHistory = function (inputs) {
-  var arraysEqual = function (array1, array2) {
-    if (array1.length !== array2.length) { return false }
-    for (var i = 0; i < array1.length; i++) {
-      if (array1[i] !== array2[i]) { return false }
-    }
-    return true
-  }
-
-  var historyExists = false
-  for (var i = 0; i < index.history.length; i++) {
-    if (arraysEqual(index.history[i].pages, inputs.pages) && arraysEqual(index.history[i].frames, inputs.frames)) {
-      historyExists = true
-      break
-    }
-  }
-
-  if (historyExists) { return }
-
-  index.history.push(inputs)
-
-  var history = document.getElementById('history')
-  history.innerHTML = index.history.map(function (h, i) {
-    return '<option value="' + i + '">' + h.pages.join(',') + ' && ' + h.frames.join(',') + '</option>'
-  }).join('\n')
-}
-
-index.useHistory = function () {
-  var history = document.getElementById('history')
-  if (history.value === undefined) {
-    return alert('Tidak ada history yang terpilih.')
-  }
-
-  var _index = parseInt(history.value)
-  if (isNaN(_index) || !index.history[_index]) {
-    return alert('History yang dipilih tidak valid.')
-  }
-
-  document.getElementById('pages').value = index.history[_index].pages
-  document.getElementById('frames').value = index.history[_index].frames
-}
-
-index.parseInputs = function () {
-  var inputs = {
-    pages: document.getElementById('pages').value
-      .split(',')
-      .map(function (i) { return parseInt(i) }),
-    frames: document.getElementById('frames').value
-      .split(',')
-      .map(function (i) { return parseInt(i) })
-  }
-
-  if (inputs.pages.filter(function (page) { return isNaN(page) }).length) {
-    return alert('Ada input page yang tidak valid.')
-  }
-
-  if (inputs.frames.filter(function (frame) { return isNaN(frame) }).length) {
-    return alert('Ada input frame yang tidak valid.')
-  }
-
-  if (inputs.pages.length >= inputs.frames.length) {
-    return alert('Jumlah frame harus LEBIH BANYAK dari jumlah page. Anda memasukkan ' + inputs.pages.length + ' page, sementara anda hanya menyediakan ' + inputs.frames.length + ' frame.')
-  }
-
-  index.updateHistory(inputs)
-  return inputs
-}
-
-index.parseCheckboxes = function () {
-  return {
-    firstFit: document.getElementById('firstFit').checked,
-    nextFit: document.getElementById('nextFit').checked,
-    bestFit: document.getElementById('bestFit').checked,
-    worstFit: document.getElementById('worstFit').checked,
-    quickFit: document.getElementById('quickFit').checked
-  }
-}
-
-index.allocateHalf = function (tag, memory) {
-  if (!document.getElementById('allocateHalf').checked) { return }
-
-  index.log(tag, 'Marking 50% frames as unavailable.')
-
-  var i, _index
-  if (!index.allocateHalfIndexes.length) {
-    index.allocateHalfIndexes = Array.apply(null, { length: memory.frames.length }).map(Number.call, Number)
-    for (i = 0; i < (memory.frames.length / 2); i++) {
-      _index = Math.floor(Math.random() * index.allocateHalfIndexes.length)
-      index.allocateHalfIndexes.splice(_index, 1)
-    }
-  }
-
-  for (i = 0; i < memory.frames.length; i++) {
-    if (index.allocateHalfIndexes.indexOf(i) === -1) { continue }
-    index.memlog(tag, memory, 'F' + i + ' ' + memory.frames[i].size + ' marked as unavailable.')
-    memory.frames[i]._unavailable = true
-  }
-}
-
-index.firstFit = function (pages, frames) {
-  var tag = index.tags.firstFit
-  var memory = index.memories.firstFit = new Memory(frames)
-  index.allocateHalf(tag, memory)
-
-  index.memlog(tag, memory, 'Memory\'s total size: ' + memory.size + '.')
-
-  var startTime = Date.now()
-  pages.forEach(function (page, pageIndex) {
-    var frame
-    for (var i = 0; i < memory.frames.length; i++) {
-      frame = memory.frames[i]
-      if (frame._unavailable) { continue }
-      if (frame.free >= page) {
-        frame.pages.push(page)
-        index.memlog(tag, memory, 'P' + pageIndex + ' ' + page + ' allocated to F' + i + ' ' + frame.size + ' (' + frame.free + ' free).')
-        return
-      }
-    }
-    memory._unallocated.push({ i: pageIndex, page: page })
-  })
-  index.log(tag, 'Elapsed time: ' + (Date.now() - startTime) + ' ms.')
-
-  var unallocated = memory._unallocated.map(function (u) { return 'P' + u.i + ' ' + u.page }).join(', ')
-  index.memlog(tag, memory, 'Unallocated: ' + unallocated + '.')
-}
-
-index.nextFit = function (pages, frames) {
-  var tag = index.tags.nextFit
-  var memory = index.memories.nextFit = new Memory(frames)
-  index.allocateHalf(tag, memory)
-
-  index.memlog(tag, memory, 'Memory\'s total size: ' + memory.size + '.')
-
-  var startTime = Date.now()
-  var lastOffset = 0
-  pages.forEach(function (page, pageIndex) {
-    var frame
-    for (var i = 0; i < memory.frames.length; i++) {
-      var j = (i + lastOffset) % memory.frames.length
-      frame = memory.frames[i]
-      if (frame._unavailable) { continue }
-      if (frame.free >= page) {
-        frame.pages.push(page)
-        index.memlog(tag, memory, 'P' + pageIndex + ' ' + page + ' allocated to F' + j + ' ' + frame.size + ' (' + frame.free + ' free).')
-        lastOffset = j
-        return
-      }
-    }
-    memory._unallocated.push({ i: pageIndex, page: page })
-  })
-  index.log(tag, 'Elapsed time: ' + (Date.now() - startTime) + ' ms.')
-
-  var unallocated = memory._unallocated.map(function (u) { return 'P' + u.i + ' ' + u.page }).join(', ')
-  index.memlog(tag, memory, 'Unallocated: ' + unallocated + '.')
-}
-
-index.bestFit = function (pages, frames) {
-  var tag = index.tags.bestFit
-  var memory = index.memories.bestFit = new Memory(frames)
-  index.allocateHalf(tag, memory)
-
-  index.memlog(tag, memory, 'Memory\'s total size: ' + memory.size + '.')
-
-  var startTime = Date.now()
-  pages.forEach(function (page, pageIndex) {
-    var frame
-    var last = {}
-    for (var i = 0; i < memory.frames.length; i++) {
-      frame = memory.frames[i]
-      if (frame._unavailable) { continue }
-      if (frame.free >= page) {
-        if (last.frame) {
-          if (frame.free < last.frame.free) {
-            last = { i: i, frame: frame }
+  algs: {
+    firstFit: {
+      tag: 'First Fit',
+      memory: null,
+      chart: null,
+      insert: function (page) {
+        var frame
+        for (var i = 0; i < this.memory.frames.length; i++) {
+          frame = this.memory.frames[i]
+          if (frame._unavailable) { continue }
+          if (frame.free >= page) {
+            frame.pages.push(page)
+            return i
           }
-        } else {
-          last = { i: i, frame: frame }
         }
       }
-    }
-    if (last.frame) {
-      last.frame.pages.push(page)
-      index.memlog(tag, memory, 'P' + pageIndex + ' ' + page + ' allocated to F' + last.i + ' ' + last.frame.size + ' (' + last.frame.free + ' free).')
-      return
-    }
-    memory._unallocated.push({ i: pageIndex, page: page })
-  })
-  index.log(tag, 'Elapsed time: ' + (Date.now() - startTime) + ' ms.')
-
-  var unallocated = memory._unallocated.map(function (u) { return 'P' + u.i + ' ' + u.page }).join(', ')
-  index.memlog(tag, memory, 'Unallocated: ' + unallocated + '.')
-}
-
-index.worstFit = function (pages, frames) {
-  var tag = index.tags.worstFit
-  var memory = index.memories.worstFit = new Memory(frames)
-  index.allocateHalf(tag, memory)
-
-  index.memlog(tag, memory, 'Memory\'s total size: ' + memory.size + '.')
-
-  var startTime = Date.now()
-  pages.forEach(function (page, pageIndex) {
-    var last = {}
-    var frame
-    for (var i = 0; i < memory.frames.length; i++) {
-      frame = memory.frames[i]
-      if (frame._unavailable) { continue }
-      if (frame.free >= page) {
-        if (last.frame) {
-          if (frame.free > last.frame.free) {
-            last = { i: i, frame: frame }
+    },
+    nextFit: {
+      tag: 'Next Fit',
+      memory: null,
+      chart: null,
+      insert: function (page) {
+        if (this.memory.data.last === undefined) {
+          this.memory.data.last = 0
+        }
+        var j, frame
+        for (var i = 0; i < this.memory.frames.length; i++) {
+          j = (i + this.memory.data.last) % this.memory.frames.length
+          frame = this.memory.frames[j]
+          if (frame._unavailable) { continue }
+          if (frame.free >= page) {
+            frame.pages.push(page)
+            this.memory.data.last = j
+            return j
           }
-        } else {
-          last = { i: i, frame: frame }
         }
       }
+    },
+    bestFit: {
+      tag: 'Best Fit',
+      memory: null,
+      chart: null,
+      insert: function (page) {
+        var last, frame
+        for (var i = 0; i < this.memory.frames.length; i++) {
+          frame = this.memory.frames[i]
+          if (frame._unavailable) { continue }
+          if (frame.free >= page) {
+            if (last !== undefined) {
+              if (frame.free < this.memory.frames[last].free) {
+                last = i
+              }
+            } else {
+              last = i
+            }
+          }
+        }
+        if (last !== undefined) {
+          this.memory.frames[last].pages.push(page)
+          return last
+        }
+      }
+    },
+    worstFit: {
+      tag: 'Worst Fit',
+      memory: null,
+      chart: null,
+      insert: function (page) {
+        var last, frame
+        for (var i = 0; i < this.memory.frames.length; i++) {
+          frame = this.memory.frames[i]
+          if (frame._unavailable) { continue }
+          if (frame.free >= page) {
+            if (last !== undefined) {
+              if (frame.free > this.memory.frames[last].free) {
+                last = i
+              }
+            } else {
+              last = i
+            }
+          }
+        }
+        if (last !== undefined) {
+          this.memory.frames[last].pages.push(page)
+          return last
+        }
+      }
+    },
+    quickFit: {
+      tag: 'Quick Fit',
+      memory: null,
+      chart: null,
+      insert: function (page) {
+        console.log('Quick Fit not implemented: ' + page)
+        // TODO:
+      }
     }
-    if (last.frame) {
-      last.frame.pages.push(page)
-      index.memlog(tag, memory, 'P' + pageIndex + ' ' + page + ' allocated to F' + last.i + ' ' + last.frame.size + ' (' + last.frame.free + ' free).')
-      return
-    }
-    memory._unallocated.push({ i: pageIndex, page: page })
+  }
+}
+
+
+index.updateChart = function (key, animdur) {
+  console.log('Updating chart: ' + key + '')
+  var chart = index.algs[key].chart
+  if (!chart) { return }
+  chart.data.labels = ['']
+  chart.data.datasets = []
+
+  var memory = index.algs[key].memory
+  if (!memory) { return chart.update() }
+  memory.frames.forEach(function (frame, i) {
+    chart.data.datasets.push({
+      label: ' F' + (i + 1) + ' terisi',
+      data: [frame.allocated],
+      backgroundColor: '#DBF3F3',
+      borderColor: '#4BC0C0'
+    })
+    chart.data.datasets.push({
+      label: ' F' + (i + 1) + ' kosong',
+      data: [frame.free],
+      backgroundColor: '#D6ECFB',
+      borderColor: '#36A2EB'
+    })
   })
-  index.log(tag, 'Elapsed time: ' + (Date.now() - startTime) + ' ms.')
-
-  var unallocated = memory._unallocated.map(function (u) { return 'P' + u.i + ' ' + u.page }).join(', ')
-  index.memlog(tag, memory, 'Unallocated: ' + unallocated + '.')
+  chart.update(animdur)
 }
 
-index.quickFit = function () {
-  // TODO: ...
-  return false
+index.notify = function (notify, message, type) {
+  notify.className = 'notification ' + (type || '')
+  notify.getElementsByTagName('div')[0].innerHTML = message
+  notify.style.display = 'block'
 }
 
-index.drawChartJS = function () {
-  index.log('DrawChartJS', 'Drawing simulation chart.')
+index.unnotify = function (element) {
+  element.parentNode.style.display = 'none'
+  console.log(element.parentNode.getElementsByTagName('div'))
+  element.parentNode.getElementsByTagName('div')[0].innerHTML = ''
+}
 
-  var container = document.getElementById('chart-container')
-  var data = {
-    labels: Object.keys(index.memories).map(function (key) {
-      var unallocated = index.memories[key]._unallocated.length
-      var allocated = index.memories[key].frames.reduce(function (accumulator, frame) {
-        return accumulator + frame.pages.length
-      }, 0)
-      return index.tags[key] + ' [' + allocated + '/' + (allocated + unallocated) + ']'
-    }),
-    datasets: []
+index.page = function () {
+  var page = parseInt(document.getElementById('page').value)
+
+  if (isNaN(page) || page < 0) {
+    return swal('Error!', 'Ukuran page tidak boleh kurang dari NOL.', 'error')
   }
 
-  // Use the first memory as the base (since they all will have the same frames)
-  var base = index.memories[Object.keys(index.memories)[0]]
-  for (var i = 0; i < base.frames.length; i++) {
-    if (base.frames[i]._unavailable) {
-      data.datasets.push({
-        label: 'F' + i + ' ' + base.frames[i].size + ' - Unavailable',
-        data: Object.keys(index.memories).map(function (key) {
-          return index.memories[key].frames[i].size
-        }),
-        backgroundColor: '#dce2e6'
-      })
+  Object.keys(index.algs).forEach(function (key) {
+    if (!index.algs[key].memory) { return }
+    var frame = index.algs[key].insert(page)
+    if (frame !== undefined) {
+      index.notify(index.algs[key].notify, 'Page ditambahkan ke frame ke-<strong>' + (frame + 1) + '</strong>.')
     } else {
-      data.datasets.push({
-        label: 'F' + i + ' ' + base.frames[i].size + ' - Allocated',
-        data: Object.keys(index.memories).map(function (key) {
-          return index.memories[key].frames[i].allocated
-        }),
-        backgroundColor: '#D9E8FB'
-      }, {
-        label: 'F' + i + ' ' + base.frames[i].size + ' - Free',
-        data: Object.keys(index.memories).map(function (key) {
-          return index.memories[key].frames[i].free
-        }),
-        backgroundColor: '#FFFFFF'
-      })
+      index.notify(index.algs[key].notify, 'Page tidak dapat ditambahkan.', 'is-danger')
     }
+    index.updateChart(key, 0) // set animation's duration to 0
+  })
+}
+
+index.init = function () {
+  var frames = document.getElementById('frames').value
+    .split(',')
+    .map(function (i) { return parseInt(i) })
+
+  if (frames.filter(function (frame) { return isNaN(frame) }).length) {
+    return swal('Error!', 'Ada input frame yang tidak valid.', 'error')
   }
 
-  var canvas = document.createElement('canvas')
+  var some = false
+  Object.keys(index.algs).forEach(function (key) {
+    var checkbox = document.getElementById(key)
+    if (checkbox && checkbox.checked) {
+      index.algs[key].memory = new Memory(frames)
+      some = true
+    } else {
+      index.algs[key].memory = null
+    }
+  })
+
+  if (!some) {
+    return swal('Error!', 'Anda harus mengaktifkan salah satu algoritma.', 'error')
+  }
+
+  Object.keys(index.algs).forEach(function (key) {
+    index.updateChart(key, 800) // set animation's duration to 800 ms
+  })
+
+  document.getElementById('btn_reset').removeAttribute('disabled')
+  document.getElementById('btn_page').removeAttribute('disabled')
+}
+
+index.reset = function () {
+  Object.keys(index.algs).forEach(function (key) {
+    index.algs[key].chart.data = {
+      labels: [],
+      datasets: []
+    }
+    index.algs[key].chart.update()
+    index.algs[key].notify.style.display = 'none'
+    index.algs[key].notify.getElementsByTagName('div')[0].innerHTML = ''
+  })
+  document.getElementById('btn_reset').setAttribute('disabled', 'disabled')
+  document.getElementById('btn_page').setAttribute('disabled', 'disabled')
+}
+
+index.createCanvas = function (title) {
+  var field = document.createElement('div')
+  field.className = 'field'
+  field.innerHTML =
+    '<div class="label">' + title + ':</div>' +
+      '<div class="control" style="min-height: 150px">' +
+        '<canvas></canvas>' +
+      '</div>' +
+      '<div class="control">' +
+        '<div class="notification" style="display: none">' +
+          '<button class="delete" onclick="index.unnotify(this)"></button>' +
+          '<div></div>' +
+        '</div>' +
+      '</div>'
+    '</div>'
+
+  var canvas = field.getElementsByTagName('canvas')[0]
+  var notify = field.getElementsByClassName('notification')[0]
+  return {
+    field: field,
+    chart: new Chart(canvas, {
+      type: 'horizontalBar',
+      options: {
+        title: {
+          display: false
+        },
+        legend: {
+          display: false
+        },
+        tooltips: {
+          mode: 'nearest'
+        },
+        scales: {
+          xAxes: [{
+            stacked: true,
+            display: false
+          }],
+          yAxes: [{
+            stacked: true,
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          datalabels: {
+            display: function (context) {
+              return context.dataset.data[context.dataIndex] > 0
+            }
+          }
+        }
+      }
+    }),
+    notify: notify
+  }
+}
+
+window.onload = function () {
+  index.container = document.getElementById('chart-container')
+  index.container.innerHTML = ''
 
   Chart.defaults.global.defaultFontFamily = 'BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Helvetica, Arial, sans-serif'
   Chart.defaults.global.defaultFontSize = 16
   Chart.defaults.global.elements.rectangle.borderWidth = 1
-  var chart = new Chart(canvas, { // eslint-disable-line no-unused-vars
-    type: 'bar',
-    data: data,
-    options: {
-      title: {
-        display: true,
-        text: 'Memory Paging Simulation'
-      },
-      responsive: true,
-      maintainAspectRatio: false,
-      onResize: function (chart, size) {
-        var height = Math.ceil(size.width * (base.frames.length / 10))
-        chart.canvas.parentNode.style.height = height + 'px'
-      },
-      legend: {
-        display: false
-      },
-      scales: {
-        xAxes: [{
-          stacked: true
-        }],
-        yAxes: [{
-          stacked: true
-        }]
-      }
-    }
+
+  Object.keys(index.algs).forEach(function (key) {
+    var result = index.createCanvas(index.algs[key].tag)
+    index.algs[key].chart = result.chart
+    index.algs[key].notify = result.notify
+    index.container.appendChild(result.field)
   })
 
-  container.innerHTML = ''
-  container.appendChild(canvas)
-
-  var memlog = document.getElementById('memlog')
-  var memlogs = []
-
-  Object.keys(index.memories)
-    .map(function (key) { return index.memories[key] })
-    .forEach(function (memory) { memlogs = memlogs.concat(memory._logs) })
-
-  memlog.value = memlogs.join('\n')
-}
-
-index.simulate = function () {
-  var inputs = index.parseInputs()
-  var checkboxes = index.parseCheckboxes()
-
-  if (!inputs || !checkboxes) { return }
-
-  index.memories = {}
-  index.allocateHalfIndexes = []
-
-  var some = false
-  for (var key in checkboxes) {
-    if (checkboxes[key]) {
-      index[key](inputs.pages, inputs.frames)
-      some = true
-    }
-  }
-
-  if (!some) {
-    return alert('Anda harus mengaktifkan salah satu algoritma.')
-  }
-
-  index.drawChartJS()
+  /* Disable quick fit algorithm */
+  var quickFit = document.getElementById('quickFit')
+  quickFit.checked = false
+  quickFit.addEventListener('click', function () {
+    swal('Error!', 'Algoritma ini masih belum tersedia.', 'error')
+    this.checked = false
+  })
 }
