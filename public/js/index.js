@@ -204,16 +204,18 @@ index.nextFit = function (pages, frames) {
   index.memlog(tag, memory, 'Memory\'s total size: ' + memory.size + '.')
 
   var startTime = Date.now()
-  var lastIndex = 0
+  var lastOffset = 0
   pages.forEach(function (page, pageIndex) {
     var frame
-    for (var i = lastIndex; i < memory.frames.length; i++) {
+    for (var i = 0; i < memory.frames.length; i++) {
+      var j = (i + lastOffset) % memory.frames.length
+      console.log('Scanning at ' + j)
       frame = memory.frames[i]
       if (frame._unavailable) { continue }
       if (frame.free >= page) {
         frame.pages.push(page)
-        index.memlog(tag, memory, 'P' + pageIndex + ' ' + page + ' allocated to F' + i + ' ' + frame.size + ' (' + frame.free + ' free).')
-        lastIndex = i
+        index.memlog(tag, memory, 'P' + pageIndex + ' ' + page + ' allocated to F' + j + ' ' + frame.size + ' (' + frame.free + ' free).')
+        lastOffset = j
         return
       }
     }
