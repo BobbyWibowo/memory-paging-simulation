@@ -209,7 +209,6 @@ index.nextFit = function (pages, frames) {
     var frame
     for (var i = 0; i < memory.frames.length; i++) {
       var j = (i + lastOffset) % memory.frames.length
-      console.log('Scanning at ' + j)
       frame = memory.frames[i]
       if (frame._unavailable) { continue }
       if (frame.free >= page) {
