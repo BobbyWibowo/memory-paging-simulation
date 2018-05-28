@@ -30,6 +30,7 @@ Memory.prototype = {
 var Frame = function (size) {
   this.size = size
   this.pages = []
+  this._unavailable = false // currently unused
 }
 
 Frame.prototype = {
@@ -138,8 +139,7 @@ var index = {
       tag: 'Quick Fit',
       memory: null,
       chart: null,
-      insert: function (page) {
-        console.log('Quick Fit not implemented: ' + page)
+      insert: function () {
         // TODO:
       }
     }
@@ -148,7 +148,6 @@ var index = {
 
 
 index.updateChart = function (key, animdur) {
-  console.log('Updating chart: ' + key + '')
   var chart = index.algs[key].chart
   if (!chart) { return }
   chart.data.labels = ['']
@@ -181,15 +180,14 @@ index.notify = function (notify, message, type) {
 
 index.unnotify = function (element) {
   element.parentNode.style.display = 'none'
-  console.log(element.parentNode.getElementsByTagName('div'))
   element.parentNode.getElementsByTagName('div')[0].innerHTML = ''
 }
 
 index.page = function () {
   var page = parseInt(document.getElementById('page').value)
 
-  if (isNaN(page) || page < 0) {
-    return swal('Error!', 'Ukuran page tidak boleh kurang dari NOL.', 'error')
+  if (isNaN(page) || page < 1) {
+    return swal('Error!', 'Ukuran page tidak boleh kurang dari SATU.', 'error')
   }
 
   Object.keys(index.algs).forEach(function (key) {
