@@ -150,25 +150,31 @@ var index = {
 index.updateChart = function (key, animdur) {
   var chart = index.algs[key].chart
   if (!chart) { return }
+
   chart.data.labels = ['']
   chart.data.datasets = []
 
+  var display = 'none'
   var memory = index.algs[key].memory
-  if (!memory) { return chart.update() }
-  memory.frames.forEach(function (frame, i) {
-    chart.data.datasets.push({
-      label: ' F' + (i + 1) + ' terisi',
-      data: [frame.allocated],
-      backgroundColor: '#DBF3F3',
-      borderColor: '#4BC0C0'
+  if (memory) {
+    display = 'block'
+    memory.frames.forEach(function (frame, i) {
+      chart.data.datasets.push({
+        label: ' F' + (i + 1) + ' terisi',
+        data: [frame.allocated],
+        backgroundColor: '#DBF3F3',
+        borderColor: '#4BC0C0'
+      })
+      chart.data.datasets.push({
+        label: ' F' + (i + 1) + ' kosong',
+        data: [frame.free],
+        backgroundColor: '#D6ECFB',
+        borderColor: '#36A2EB'
+      })
     })
-    chart.data.datasets.push({
-      label: ' F' + (i + 1) + ' kosong',
-      data: [frame.free],
-      backgroundColor: '#D6ECFB',
-      borderColor: '#36A2EB'
-    })
-  })
+  }
+
+  chart.canvas.parentNode.parentNode.style.display = display
   chart.update(animdur)
 }
 
