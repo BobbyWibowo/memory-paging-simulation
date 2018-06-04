@@ -30,11 +30,12 @@ Memory.prototype = {
 var Frame = function (size) {
   this.size = size
   this.pages = []
-  this._unavailable = false // currently unused
+  this._unavailable = false
 }
 
 Frame.prototype = {
   get free() {
+    if (this._unavailable) { return 0 } // If marked as available, return 0 free space
     return this.pages.reduce(function (accumulator, page) {
       return accumulator - page
     }, this.size)
@@ -56,7 +57,7 @@ var index = {
         var frame
         for (var i = 0; i < this.memory.frames.length; i++) {
           frame = this.memory.frames[i]
-          if (frame._unavailable) { continue }
+          if (frame.pages.length) { continue } // Skip used frame
           if (frame.free >= page) {
             frame.pages.push(page)
             return i
@@ -76,7 +77,6 @@ var index = {
         for (var i = 0; i < this.memory.frames.length; i++) {
           j = (i + this.memory.data.last) % this.memory.frames.length
           frame = this.memory.frames[j]
-          if (frame._unavailable) { continue }
           if (frame.free >= page) {
             frame.pages.push(page)
             this.memory.data.last = j
@@ -93,7 +93,6 @@ var index = {
         var last, frame
         for (var i = 0; i < this.memory.frames.length; i++) {
           frame = this.memory.frames[i]
-          if (frame._unavailable) { continue }
           if (frame.free >= page) {
             if (last !== undefined) {
               if (frame.free < this.memory.frames[last].free) {
@@ -118,7 +117,6 @@ var index = {
         var last, frame
         for (var i = 0; i < this.memory.frames.length; i++) {
           frame = this.memory.frames[i]
-          if (frame._unavailable) { continue }
           if (frame.free >= page) {
             if (last !== undefined) {
               if (frame.free > this.memory.frames[last].free) {
@@ -191,7 +189,6 @@ index.unnotify = function (element) {
 
 index.page = function () {
   var page = parseInt(document.getElementById('page').value)
-
   if (isNaN(page) || page < 1) {
     return swal('Error!', 'Ukuran page tidak boleh kurang dari SATU.', 'error')
   }
@@ -230,6 +227,25 @@ index.init = function () {
 
   if (!some) {
     return swal('Error!', 'Anda harus mengaktifkan salah satu algoritma.', 'error')
+  }
+
+  var halved = document.getElementById('halved').checked
+  if (halved) {
+    var halvedFrames = Array.apply(null, { length: frames.length }).map(Number.call, Number)
+    for (var i = 0; i < (frames.length / 2); i++) {
+      var _index = Math.floor(Math.random() * halvedFrames.length)
+      halvedFrames.splice(_index, 1)
+    }
+
+    if (halvedFrames.length) {
+      Object.keys(index.algs).forEach(function (key) {
+        var memory = index.algs[key].memory
+        if (!memory) { return }
+        for (var i = 0; i < memory.frames.length; i++) {
+          memory.frames[i]._unavailable = (halvedFrames.indexOf(i) > -1)
+        }
+      })
+    }
   }
 
   Object.keys(index.algs).forEach(function (key) {
