@@ -57,7 +57,7 @@ var index = {
         var frame
         for (var i = 0; i < this.memory.frames.length; i++) {
           frame = this.memory.frames[i]
-          if (frame.pages.length) { continue } // Skip used frame
+          if (frame.pages.length) { continue }
           if (frame.free >= page) {
             frame.pages.push(page)
             return i
@@ -77,6 +77,7 @@ var index = {
         for (var i = 0; i < this.memory.frames.length; i++) {
           j = (i + this.memory.data.last) % this.memory.frames.length
           frame = this.memory.frames[j]
+          if (frame.pages.length) { continue }
           if (frame.free >= page) {
             frame.pages.push(page)
             this.memory.data.last = j
@@ -93,6 +94,7 @@ var index = {
         var last, frame
         for (var i = 0; i < this.memory.frames.length; i++) {
           frame = this.memory.frames[i]
+          if (frame.pages.length) { continue }
           if (frame.free >= page) {
             if (last !== undefined) {
               if (frame.free < this.memory.frames[last].free) {
@@ -117,6 +119,7 @@ var index = {
         var last, frame
         for (var i = 0; i < this.memory.frames.length; i++) {
           frame = this.memory.frames[i]
+          if (frame.pages.length) { continue }
           if (frame.free >= page) {
             if (last !== undefined) {
               if (frame.free > this.memory.frames[last].free) {
